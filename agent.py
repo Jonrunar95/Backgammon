@@ -31,3 +31,5 @@ def action(board_copy,dice,player,i):
     move = possible_moves[np.random.randint(len(possible_moves))]
 
     return move
+
+# gitkraken test
