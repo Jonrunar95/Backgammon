@@ -27,9 +27,17 @@ def greedy(board, w1, b1, w2, b2):
     
     return np.argmax(va)
 
-def learn(w1, b1, w2, b2):
-    print(w1, b1, w2, b2)
+def sigmoidDerivative(s):
+    #derivative of sigmoid
+    return s * (1 - s)
 
+def learn(w1, b1, w2, b2):
+    error = o - y
+    oDelta = sigmoidDerivative(o)*error
+    z2_error = delta * w2
+    z2Delta = sigmoidDerivative(Z2)
+    w1 = z2delta * x
+    w2 = z2 * delta
 
 
 def action(board_copy,dice,player,i):
