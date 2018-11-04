@@ -59,3 +59,5 @@ def action(board_copy,dice,player,i):
     move = possible_moves[action]
 
     return move
+
+# gitkraken test
