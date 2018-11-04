@@ -10,6 +10,12 @@ import Backgammon
 import torch
 from torch.autograd import Variable
 
+def sigmoid(x):
+    return 1.0/(1+ np.exp(-x)),
+
+def sigmoid_derivative(x):
+    return x * (1.0 - x)
+
 def greedy(board, w1, b1, w2, b2):
     na = np.size(board)
     va = np.zeros(na)
