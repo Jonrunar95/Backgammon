@@ -243,6 +243,7 @@ def play_a_game(commentary = False):
     return -1*player
 
 def main():
+    firstMove = True
     winners = {}; winners["1"]=0; winners["-1"]=0; # Collecting stats of the games
     nGames = 100 # how many games?
     for g in range(nGames):

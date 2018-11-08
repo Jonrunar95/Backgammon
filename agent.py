@@ -10,50 +10,64 @@ import Backgammon
 import torch
 from torch.autograd import Variable
 
-def sigmoid(x):
-    return 1.0/(1+ np.exp(-x)),
 
-def sigmoid_derivative(x):
-    return x * (1.0 - x)
+device = torch.device("cpu")
+firstMove1 = True
+y_new = 0
+y_old = 0
 
 def greedy(board, w1, b1, w2, b2):
-    na = np.size(board)
-    va = np.zeros(na)
-    for i in range(0, na):
-        # encode the board to create the input
-        nn = board*(1/15)
 
-        # https://pytorch.org/docs/stable/autograd.html#variable-deprecated
-        x = Variable(torch.tensor(nn, dtype = torch.float, device = device)).view(28,1)
-        # now do a forward pass to evaluate the board's after-state value
-        h = torch.mm(w1,x) + b1 # matrix-multiply x with input weight w1 and add bias
-        h_sigmoid = h.sigmoid() # squash this with a sigmoid function
-        y = torch.mm(w2,h_sigmoid) + b2 # multiply with the output weights w2 and add bias
-        va[i] = y.sigmoid()
+    # encode the board to create the input
+    board = board[1:]
+    print(len(board[0]), len(board))
+    # https://pytorch.org/docs/stable/autograd.html#variable-deprecated
+    x = Variable(torch.tensor(board, dtype = torch.float, device = device)).view(len(board[0]), len(board))
+    # now do a forward pass to evaluate the board's after-state value
+    h = torch.mm(w1,x) + b1 # matrix-multiply x with input weight w1 and add bias
+    h_relu= h.clamp(min=0) # squash this with a sigmoid function
+    y_pred = torch.mm(w2,h_sigmoid) + b2 # multiply with the output weights w2 and add bias
+    va = y.clamp(min=0)
+    y_new = max(va)
+    return np.argmax(va), y_new
+
+def learn(y_old, w1, b1, w2, b2, board):
+    x = Variable(torch.tensor(board, dtype = torch.float, device = device)).view(28,1)
+    # now do a forward pass to evaluate the board's after-state value
+    h = torch.mm(w1,x) + b1 # matrix-multiply x with input weight w1 and add bias
+    h_relu= h.clamp(min=0) # squash this with a sigmoid function
+    y_pred = torch.mm(w2,h_sigmoid) + b2 # multiply with the output weights w2 and add bias
+    va = y.clamp(min=0)
+    y_new = max(va)
+
+    delta = y_new-y_old
+    y_old.backward()
+
+    w1.data += 0.01*delta*w1.grad.data
+    w2.data += 0.01*delta*w2.grad.data
+    b1.data += 0.01*delta*b1.grad.data
+    b2.data += 0.01*delta*b2.grad.data
     
-    return np.argmax(va)
-
-def sigmoidDerivative(s):
-    #derivative of sigmoid
-    return s * (1 - s)
-
-def learn(w1, b1, w2, b2):
-    error = o - y
-    oDelta = sigmoidDerivative(o)*error
-    z2_error = delta * w2
-    z2Delta = sigmoidDerivative(Z2)
-    w1 = z2delta * x
-    w2 = z2 * delta
+    #error = o - y
+    #o_delta = sigmoid_derivative(o)*error
+    #z2_error = o_delta.dot(w2.T)
+    #h_sigmoid().backward()
+    #z2_delta = z2_error * sigmoid_derivative(h_sigmoid)
+    #w1 += x.T.dot(z2_delta)
+    #w2 = h_sigmoid * delta
 
 
 def action(board_copy,dice,player,i):
-    if firstMove:
-        w1 = Variable(torch.randn(28*28, 28, device = device, dtype=torch.float), requires_grad = True)
-        b1 = Variable(torch.zeros((28*28,1), device = device, dtype=torch.float), requires_grad = True)
-        w2 = Variable(torch.randn(1,28*28, device = device, dtype=torch.float), requires_grad = True)
-        b2 = Variable(torch.zeros((1,1), device = device, dtype=torch.float), requires_grad = True)
+    if firstMove1 == True:
+        
+        w1 = torch.randn(28*28, 28, device = device, dtype=torch.float, requires_grad = True)
+        b1 = torch.zeros((28*28,1), device = device, dtype=torch.float, requires_grad = True)
+        w2 = torch.randn(1,28*28, device = device, dtype=torch.float, requires_grad = True)
+        b2 = torch.zeros((1,1), device = device, dtype=torch.float, requires_grad = True)
+        firstMove1==False
     else:
-        learn(w1, b1, w2, b2)
+        y_old = y_new
+        learn(y_old, w1, b1, w2, b2)
     # the champion to be
     # inputs are the board, the dice and which player is to move
     # outputs the chosen move accordingly to its policy
@@ -65,7 +79,7 @@ def action(board_copy,dice,player,i):
     if len(possible_moves) == 0: 
         return []
 
-    action = greedy(possible_boards, w1, b1, w2, b2)
+    action, y_new = greedy(possible_boards, w1, b1, w2, b2)
     # make the best move according to the policy
 
 
