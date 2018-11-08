@@ -19,15 +19,16 @@ y_old = 0
 def greedy(board, w1, b1, w2, b2):
 
     # encode the board to create the input
-    board = board[1:]
-    print(len(board[0]), len(board))
+ 
+    board = [board[i][1:] for i in range(len(board))]
     # https://pytorch.org/docs/stable/autograd.html#variable-deprecated
     x = Variable(torch.tensor(board, dtype = torch.float, device = device)).view(len(board[0]), len(board))
     # now do a forward pass to evaluate the board's after-state value
     h = torch.mm(w1,x) + b1 # matrix-multiply x with input weight w1 and add bias
     h_relu= h.clamp(min=0) # squash this with a sigmoid function
-    y_pred = torch.mm(w2,h_sigmoid) + b2 # multiply with the output weights w2 and add bias
-    va = y.clamp(min=0)
+    y_pred = torch.mm(w2,h_relu) + b2 # multiply with the output weights w2 and add bias
+    va = y_pred.clamp(min=0)
+    va = va.detach().cpu().numpy()
     y_new = max(va)
     return np.argmax(va), y_new
 
@@ -36,9 +37,9 @@ def learn(y_old, w1, b1, w2, b2, board):
     # now do a forward pass to evaluate the board's after-state value
     h = torch.mm(w1,x) + b1 # matrix-multiply x with input weight w1 and add bias
     h_relu= h.clamp(min=0) # squash this with a sigmoid function
-    y_pred = torch.mm(w2,h_sigmoid) + b2 # multiply with the output weights w2 and add bias
-    va = y.clamp(min=0)
-    y_new = max(va)
+    y_pred = torch.mm(w2,h_relu) + b2 # multiply with the output weights w2 and add bias
+    va = y_pred.clamp(min=0)
+    y_new = max(va.detach().cpu().numpy())
 
     delta = y_new-y_old
     y_old.backward()

@@ -218,13 +218,13 @@ def play_a_game(commentary = False):
             board_copy = np.copy(board) 
 
             # make the move (agent vs agent):
-            move = agent.action(board_copy,dice,player,i) 
+            #move = agent.action(board_copy,dice,player,i) 
             
-            # if you're playing vs random agent:
-#            if player == 1:
-#                move = agent.action(board_copy,dice,player,i)
-#            elif player == -1:
-#                move = random_agent(board_copy,dice,player,i) 
+            #if you're playing vs random agent:
+            if player == 1:
+                move = agent.action(board_copy,dice,player,i)
+            elif player == -1:
+                move = random_agent(board_copy,dice,player,i) 
             
             # update the board
             if len(move) != 0:
@@ -245,8 +245,10 @@ def play_a_game(commentary = False):
 def main():
     firstMove = True
     winners = {}; winners["1"]=0; winners["-1"]=0; # Collecting stats of the games
-    nGames = 100 # how many games?
+    nGames = 1000 # how many games?
     for g in range(nGames):
+        if(g%100 == 0):
+            print("games played:",g)
         winner = play_a_game(commentary=False)
         winners[str(winner)] += 1
     print("Out of", nGames, "games,")
