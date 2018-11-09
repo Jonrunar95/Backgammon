@@ -11,6 +11,7 @@ so make sure your changes here won't affect his performance.
 import numpy as np
 import agent
 # import flipped_agent 
+import time
 
 def init_board():
     # initializes the game board
@@ -245,9 +246,9 @@ def play_a_game(commentary = False):
 def main():
     firstMove = True
     winners = {}; winners["1"]=0; winners["-1"]=0; # Collecting stats of the games
-    nGames = 1000 # how many games?
+    nGames = 100 # how many games?
     for g in range(nGames):
-        if(g%100 == 0):
+        if(g%10 == 0):
             print("games played:",g)
         winner = play_a_game(commentary=False)
         winners[str(winner)] += 1
@@ -256,7 +257,12 @@ def main():
     print("player", -1, "won", winners["-1"],"times")
 
 if __name__ == '__main__':
-    main()
     
+    start_time = time.time()
+    main()
+    print("--- %s seconds ---" % (time.time() - start_time))
+    print("--- %s minutes ---" % str(float((time.time() - start_time))/60))
+    print("--- %s hours ---" % str(float((time.time() - start_time))/3600))
+
     
 

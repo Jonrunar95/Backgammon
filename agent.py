@@ -19,8 +19,13 @@ y_old = 0
 def greedy(board, w1, b1, w2, b2):
 
     # encode the board to create the input
+    board = [getinputboard(board[i]) for i in range(len(board))]
+    
+#    print("\n")
+#    print(board)
  
-    board = [board[i][1:] for i in range(len(board))]
+#    board = [board[i][1:] for i in range(len(board))]
+    
     # https://pytorch.org/docs/stable/autograd.html#variable-deprecated
     x = Variable(torch.tensor(board, dtype = torch.float, device = device)).view(len(board[0]), len(board))
     # now do a forward pass to evaluate the board's after-state value
@@ -33,7 +38,10 @@ def greedy(board, w1, b1, w2, b2):
     return np.argmax(va), y_new
 
 def learn(y_old, w1, b1, w2, b2, board):
-    x = Variable(torch.tensor(board, dtype = torch.float, device = device)).view(28,1)
+    
+    x = Variable(torch.tensor(board, dtype = torch.float, device = device)).view(724,1)
+#    x = Variable(torch.tensor(board, dtype = torch.float, device = device)).view(28,1)
+    
     # now do a forward pass to evaluate the board's after-state value
     h = torch.mm(w1,x) + b1 # matrix-multiply x with input weight w1 and add bias
     h_relu= h.clamp(min=0) # squash this with a sigmoid function
@@ -60,10 +68,13 @@ def learn(y_old, w1, b1, w2, b2, board):
 
 def action(board_copy,dice,player,i):
     if firstMove1 == True:
-        
-        w1 = torch.randn(28*28, 28, device = device, dtype=torch.float, requires_grad = True)
-        b1 = torch.zeros((28*28,1), device = device, dtype=torch.float, requires_grad = True)
-        w2 = torch.randn(1,28*28, device = device, dtype=torch.float, requires_grad = True)
+ 
+        w1 = torch.randn(724*28, 724, device = device, dtype=torch.float, requires_grad = True)
+        b1 = torch.zeros((724*28,1), device = device, dtype=torch.float, requires_grad = True)
+        w2 = torch.randn(1,724*28, device = device, dtype=torch.float, requires_grad = True)
+#        w1 = torch.randn(28*28, 28, device = device, dtype=torch.float, requires_grad = True)
+#        b1 = torch.zeros((28*28,1), device = device, dtype=torch.float, requires_grad = True)
+#        w2 = torch.randn(1,28*28, device = device, dtype=torch.float, requires_grad = True)
         b2 = torch.zeros((1,1), device = device, dtype=torch.float, requires_grad = True)
         firstMove1==False
     else:
@@ -83,14 +94,13 @@ def action(board_copy,dice,player,i):
     action, y_new = greedy(possible_boards, w1, b1, w2, b2)
     # make the best move according to the policy
 
-
     # policy missing, returns a random move for the time being
     move = possible_moves[action]
 
     return move
 
-def getinputboard(board):
 
+def getinputboard(board):
     boardencoding = np.zeros(15*24*2 + 4)
 
     for i in range(1, 25):
