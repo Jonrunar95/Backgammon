@@ -2,8 +2,8 @@
 import numpy as np
 
 board = np.zeros(29)
-#board[1] = -2
-board[1] = 2
+board[1] = -2
+#board[1] = 2
 board[12] = -5
 board[17] = -3
 board[19] = -5
