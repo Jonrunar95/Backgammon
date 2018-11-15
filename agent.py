@@ -8,78 +8,54 @@ perceive the board as player 1
 import numpy as np
 import Backgammon
 import torch
-from torch.autograd import Variable
+import pickle
+import twolayernetog
+from IPython.core.debugger import set_trace
 
 
-device = torch.device("cpu")
-firstMove1 = True
-y_new = 0
-y_old = 0
 
-def greedy(board, w1, b1, w2, b2):
+#device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cpu')
 
-    # encode the board to create the input
-    board = [getinputboard(board[i]) for i in range(len(board))]
-    
-#    print("\n")
-#    print(board)
- 
-#    board = [board[i][1:] for i in range(len(board))]
-    
-    # https://pytorch.org/docs/stable/autograd.html#variable-deprecated
-    x = Variable(torch.tensor(board, dtype = torch.float, device = device)).view(len(board[0]), len(board))
+def greedy(boards, model):
+
+    x = torch.tensor(boards, dtype = torch.float, device = device)
     # now do a forward pass to evaluate the board's after-state value
-    h = torch.mm(w1,x) + b1 # matrix-multiply x with input weight w1 and add bias
-    h_relu= h.clamp(min=0) # squash this with a sigmoid function
-    y_pred = torch.mm(w2,h_relu) + b2 # multiply with the output weights w2 and add bias
-    va = y_pred.clamp(min=0)
-    va = va.detach().cpu().numpy()
-    y_new = max(va)
-    return np.argmax(va), y_new
+    #model = model.cuda()
+    y = model(x)
+    y_greedy, move = torch.max(y, 0)
+    #chosenboard = torch.tensor(boards[move], dtype = torch.float, device = device)
+    #y_greedy = model(chosenboard)
 
-def learn(y_old, w1, b1, w2, b2, board):
-    
-    x = Variable(torch.tensor(board, dtype = torch.float, device = device)).view(724,1)
-#    x = Variable(torch.tensor(board, dtype = torch.float, device = device)).view(28,1)
-    
-    # now do a forward pass to evaluate the board's after-state value
-    h = torch.mm(w1,x) + b1 # matrix-multiply x with input weight w1 and add bias
-    h_relu= h.clamp(min=0) # squash this with a sigmoid function
-    y_pred = torch.mm(w2,h_relu) + b2 # multiply with the output weights w2 and add bias
-    va = y_pred.clamp(min=0)
-    y_new = max(va.detach().cpu().numpy())
+    return move, y_greedy
 
-    delta = y_new-y_old
-    y_old.backward()
-
-    w1.data += 0.01*delta*w1.grad.data
-    w2.data += 0.01*delta*w2.grad.data
-    b1.data += 0.01*delta*b1.grad.data
-    b2.data += 0.01*delta*b2.grad.data
-    
-    #error = o - y
-    #o_delta = sigmoid_derivative(o)*error
-    #z2_error = o_delta.dot(w2.T)
-    #h_sigmoid().backward()
-    #z2_delta = z2_error * sigmoid_derivative(h_sigmoid)
-    #w1 += x.T.dot(z2_delta)
-    #w2 = h_sigmoid * delta
-
-
-def action(board_copy,dice,player,i):
-    if firstMove1 == True:
- 
-        w1 = torch.randn(724*28, 724, device = device, dtype=torch.float, requires_grad = True)
-        b1 = torch.zeros((724*28,1), device = device, dtype=torch.float, requires_grad = True)
-        w2 = torch.randn(1,724*28, device = device, dtype=torch.float, requires_grad = True)
-#        w1 = torch.randn(28*28, 28, device = device, dtype=torch.float, requires_grad = True)
-#        b1 = torch.zeros((28*28,1), device = device, dtype=torch.float, requires_grad = True)
-#        w2 = torch.randn(1,28*28, device = device, dtype=torch.float, requires_grad = True)
-        b2 = torch.zeros((1,1), device = device, dtype=torch.float, requires_grad = True)
-        firstMove1==False
+def learn(y_old, model, board, player, gameOver):
+    #model = model.cuda()
+    criterion = torch.nn.MSELoss(reduction='sum')
+    optimizer = torch.optim.SGD(model.parameters(), lr=1e-4)
+    if(gameOver):
+        if(player == -1):
+            reward =  [1.0]
+        else:
+            reward =  [0.0]
+        y_new = torch.tensor(reward, dtype = torch.float, device = device)
     else:
-        y_old = y_new
-        learn(y_old, w1, b1, w2, b2)
+        x = torch.tensor(board, dtype = torch.float, device = device)
+        y_new = model(x)
+    # now do a forward pass to evaluate the board's after-state value
+   
+    if(gameOver):
+        print("yo", reward, y_new, player)
+    loss = criterion(y_old, y_new)
+    # Zero gradients, perform a backward pass, and update the weights.
+
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+
+    
+
+def action(board_copy,dice,player,i, y_greedy, model):
     # the champion to be
     # inputs are the board, the dice and which player is to move
     # outputs the chosen move accordingly to its policy
@@ -87,34 +63,35 @@ def action(board_copy,dice,player,i):
     # check out the legal moves available for the throw
     possible_moves, possible_boards = Backgammon.legal_moves(board_copy, dice, player)
     
+    
     # if there are no moves available
     if len(possible_moves) == 0: 
-        return []
+        return [], y_greedy
 
-    action, y_new = greedy(possible_boards, w1, b1, w2, b2)
-    # make the best move according to the policy
-
-    # policy missing, returns a random move for the time being
+    boards = []
+    for board in possible_boards:
+        boards.append(getinputboard(board))
+    action, y_greedy = greedy(boards, model)
     move = possible_moves[action]
 
-    return move
+    # update the board
+    learning_board = np.copy(board_copy)
+    if len(move) != 0:
+        for m in move:
+            learning_board = Backgammon.update_board(learning_board, m, player)
 
+    
+    learning_board = getinputboard(learning_board)
+    learn(y_greedy, model, learning_board, player, False)
+    # make the best move according to the policy
+    return move, y_greedy
 
 def getinputboard(board):
-    boardencoding = np.zeros(15*24*2 + 4)
-
-    for i in range(1, 25):
-#        print(str(i) + " " + str(board[i]))
-        if board[i] > 0:
+    boardencoding = np.zeros(15*28*2)
+    for i in range(1, len(board)):
+        val = board[i]
+        if(val > 0):
             boardencoding[(i-1)*15 + int(board[i])] = 1
-#            print("white")
-        elif board[i] < 0:
-            boardencoding[(i-1)*15 + int(abs(board[i])) + 360] = 1
-#            print("black")
-            
-    boardencoding[720] = board[25]
-    boardencoding[721] = board[26]
-    boardencoding[722] = board[27]
-    boardencoding[723] = board[28]
-
+        elif(val < 0):
+            boardencoding[(i-1)*15 + int(abs(board[i])) + 360] = 1         
     return boardencoding
