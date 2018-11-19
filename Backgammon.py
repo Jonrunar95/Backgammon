@@ -15,7 +15,7 @@ import time
 import pickle
 import twolayernetog
 
-# import flipped_agent 
+import flipped_agent 
 device = torch.device("cuda")
 def init_board():
     # initializes the game board
@@ -46,7 +46,7 @@ def check_for_error(board):
     if (sum(board[board>0]) != 15 or sum(board[board<0]) != -15):
         # too many or too few pieces on board
         errorInProgram = True
-        print("Too many or too few pieces on board!")
+        print("Too many or too few pieces on board!", sum(board[board>0]), sum(board[board<0]))
     return errorInProgram
     
 def pretty_print(board):
@@ -206,11 +206,13 @@ def random_agent(board_copy,dice,player,i):
     return move
     
 
-def play_a_game(commentary = False):
+def play_a_game(opponent, commentary = False):
     board = init_board() # initialize the board
     player = np.random.randint(2)*2-1 # which player begins?
     y_old = 0
+    y_old_p2 = 0
     firstMove = True
+    firstMove_p2 = True
     pickle_in = open("randommodel.pickle","rb")
     model = pickle.load(pickle_in)
     model = model.cuda()
@@ -227,20 +229,37 @@ def play_a_game(commentary = False):
             board_copy = np.copy(board) 
 
             # make the move (agent vs agent):
-            #move = agent.action(board_copy,dice,player,i) 
+            if(opponent == "agent"):
+                if player == 1:
+                    move, y_old = agent.action(board_copy,dice,player,i, y_old, model, firstMove, True)
+                    # update the board
+                    if len(move) != 0:
+                        for m in move:
+                            board = update_board(board, m, player)
+                    if(firstMove):
+                        firstMove = False
+                elif player == -1:
+                    flipped_board = flipped_agent.flip_board(board_copy)
+                    move, y_old_p2 = agent.action(flipped_board,dice,1,i, y_old_p2, model, firstMove_p2, True)
+                    if len(move) != 0:
+                        for m in move:
+                            flipped_board = update_board(flipped_board, m, 1)
+                    board = flipped_agent.flip_board(flipped_board)
             
+                    if(firstMove_p2):
+                        firstMove_p2 = False
+
             #if you're playing vs random agent:
-            if player == 1:
-                move, y_old = agent.action(board_copy,dice,player,i, y_old, model, firstMove)
-                if(firstMove):
-                    firstMove = False
-            elif player == -1:
-                move = random_agent(board_copy,dice,player,i) 
-            
+            elif(opponent == "random"):
+                if player == 1:
+                    move, y_old = agent.action(board_copy,dice,player,i, y_old, model, firstMove, False)
+                elif player == -1:
+                    move = random_agent(board_copy,dice,player,i)
+                if len(move) != 0:
+                        for m in move:
+                            board = update_board(board, m, player)
             # update the board
-            if len(move) != 0:
-                for m in move:
-                    board = update_board(board, m, player)
+
             
             # give status after every move:         
             if commentary: 
@@ -250,17 +269,27 @@ def play_a_game(commentary = False):
         # players take turns 
         player = -player
 
-    agent.learn(y_old, model, board, player, True)
 
     # return the winner
     winner = -1*player
-    print("Winner is player", winner)
+    if(opponent == "agent"):
+        if(winner == 1):
+            agent.learn(y_old, model, board_copy, "yes")
+            agent.learn(y_old_p2, model, board_copy, "no")
+        else:
+            agent.learn(y_old, model, board_copy, "no")
+            agent.learn(y_old_p2, model, board_copy, "yes")
+        
+    #print("Winner is player", winner)
+    pickle_out = open("randommodel.pickle","wb")
+    pickle.dump(model, pickle_out)
+    pickle_out.close()
     return winner
     
 
 def main():
     winners = {}; winners["1"]=0; winners["-1"]=0; # Collecting stats of the games
-    nGames = 100 # how many games?
+    nGames = 5000 # how many games?
     starttime = time.time()
     for g in range(nGames):
         if(g%(nGames/100) == 0):
@@ -271,9 +300,17 @@ def main():
                 totaltime = int((timediff/(g/nGames))/60) 
                 print("Games played:", g, "--- Done", percent,"%",
                 "Time done:", int(timediff/60), "minutes --- Total time:", totaltime, "minutes")
-        winner = play_a_game(commentary=False)
+        winner = play_a_game("agent", commentary=False)
         winners[str(winner)] += 1
     print("Out of", nGames, "games,"),0
+    print("player", 1, "won", winners["1"],"times and")
+    print("player", -1, "won", winners["-1"],"times")
+    games = 0
+    winners = {}; winners["1"]=0; winners["-1"]=0; # Collecting stats of the games
+    for g in range(games):
+        winner = play_a_game("random", commentary=False)
+        winners[str(winner)] += 1
+    print("Out of", games, "games,"),0
     print("player", 1, "won", winners["1"],"times and")
     print("player", -1, "won", winners["-1"],"times")
 

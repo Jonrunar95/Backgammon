@@ -28,16 +28,18 @@ def greedy(boards, model):
 
     return move, y_greedy
 
-def learn(y_old, model, boards, player, gameOver):
+def learn(y_old, model, boards, winner):
     criterion = torch.nn.MSELoss(reduction='sum')
     optimizer = torch.optim.SGD(model.parameters(), lr=1e-4)
-    if(gameOver):
-        if(player == -1):
+    if(winner == "yes" or winner == "no"):
+        if(winner == "yes"):
             reward =  [1.0]
-        else:
+        elif (winner == "no"):
             reward =  [0.0]
         y_new = torch.tensor(reward, dtype = torch.float, device = device)
-        #print("gameover", y_new.data.cpu().numpy()[0], y_old.data.cpu().numpy()[0])
+        real = y_new.data.cpu().numpy()[0]
+        estimate = y_old.data.cpu().numpy()[0]
+        #print("gameover", y_new.data.cpu().numpy()[0], y_old.data.cpu().numpy()[0], abs(real-estimate))
     else:
         move, y_new = greedy(boards, model)
     # now do a forward pass to evaluate the board's after-state value
@@ -51,7 +53,7 @@ def learn(y_old, model, boards, player, gameOver):
 
     
 
-def action(board_copy,dice,player,i, y_old, model, firstMove):
+def action(board_copy,dice,player,i, y_old, model, firstMove, training):
     # the champion to be
     # inputs are the board, the dice and which player is to move
     # outputs the chosen move accordingly to its policy
@@ -68,9 +70,9 @@ def action(board_copy,dice,player,i, y_old, model, firstMove):
     for board in possible_boards:
         boards.append(getinputboard(board))
     
-    if(not firstMove):
+    if(not firstMove and training):
         # learn
-        learn(y_old, model, boards, player, False)
+        learn(y_old, model, boards, "")
         
 
 
