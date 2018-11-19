@@ -16,7 +16,7 @@ import pickle
 import twolayernetog
 
 # import flipped_agent 
-device = torch.device("cpu")
+device = torch.device("cuda")
 def init_board():
     # initializes the game board
     board = np.zeros(29)
@@ -206,11 +206,15 @@ def random_agent(board_copy,dice,player,i):
     return move
     
 
-def play_a_game(model, commentary = False):
+def play_a_game(commentary = False):
     board = init_board() # initialize the board
     player = np.random.randint(2)*2-1 # which player begins?
-    # play on
     y_old = 0
+    firstMove = True
+    pickle_in = open("randommodel.pickle","rb")
+    model = pickle.load(pickle_in)
+    model = model.cuda()
+    # play on
     while not game_over(board) and not check_for_error(board):
         if commentary: print("lets go player ",player)
         
@@ -227,7 +231,9 @@ def play_a_game(model, commentary = False):
             
             #if you're playing vs random agent:
             if player == 1:
-                move, y_old = agent.action(board_copy,dice,player,i, y_old, model)
+                move, y_old = agent.action(board_copy,dice,player,i, y_old, model, firstMove)
+                if(firstMove):
+                    firstMove = False
             elif player == -1:
                 move = random_agent(board_copy,dice,player,i) 
             
@@ -243,17 +249,18 @@ def play_a_game(model, commentary = False):
                 
         # players take turns 
         player = -player
-    #agent.learn(y_old, model, board, player, True)
+
+    agent.learn(y_old, model, board, player, True)
 
     # return the winner
-    return -1*player
+    winner = -1*player
+    print("Winner is player", winner)
+    return winner
+    
 
 def main():
-    from twolayernet import TwoLayerNet
-    pickle_in = open("ezmodel.pickle","rb")
-    model = pickle.load(pickle_in)
     winners = {}; winners["1"]=0; winners["-1"]=0; # Collecting stats of the games
-    nGames = 1 # how many games?
+    nGames = 100 # how many games?
     starttime = time.time()
     for g in range(nGames):
         if(g%(nGames/100) == 0):
@@ -264,12 +271,8 @@ def main():
                 totaltime = int((timediff/(g/nGames))/60) 
                 print("Games played:", g, "--- Done", percent,"%",
                 "Time done:", int(timediff/60), "minutes --- Total time:", totaltime, "minutes")
-        winner = play_a_game(model, commentary=False)
+        winner = play_a_game(commentary=False)
         winners[str(winner)] += 1
-    # Save model
-    pickle_out = open("ezmodel.pickle","wb")
-    pickle.dump(model, pickle_out)
-    pickle_out.close()
     print("Out of", nGames, "games,"),0
     print("player", 1, "won", winners["1"],"times and")
     print("player", -1, "won", winners["-1"],"times")
