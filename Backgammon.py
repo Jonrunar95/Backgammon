@@ -14,6 +14,7 @@ import torch
 import time
 import pickle
 import twolayernetog
+import printing
 
 import flipped_agent 
 device = torch.device("cuda")
@@ -248,7 +249,23 @@ def play_a_game(opponent, commentary = False):
             
                     if(firstMove_p2):
                         firstMove_p2 = False
+            elif(opponent == "human"):
+                pretty_print(board)
+                if player == 1:
+                    print("Computer's turn")
+                    move, y_old = agent.action(board_copy,dice,player,i, y_old, model, firstMove, False)
+                    print("Computer's move", move)
+                elif player == -1:
+                    print("Human's turn")
+                    possible_moves, possible_boards = legal_moves(board_copy, dice, player)
+                    print("dice:", dice)
+                    printing.moves_to_string(possible_moves)
+                    text = input("prompt")
+                    move = possible_moves[int(text)]
 
+                if len(move) != 0:
+                    for m in move:
+                        board = update_board(board, m, player)
             #if you're playing vs random agent:
             elif(opponent == "random"):
                 if player == 1:
@@ -265,12 +282,14 @@ def play_a_game(opponent, commentary = False):
             if commentary: 
                 print("move from player",player,":")
                 pretty_print(board)
-                
+        
+
         # players take turns 
         player = -player
 
 
     # return the winner
+    print("Final board", board_copy)
     winner = -1*player
     if(opponent == "agent"):
         if(winner == 1):
@@ -289,7 +308,7 @@ def play_a_game(opponent, commentary = False):
 
 def main():
     winners = {}; winners["1"]=0; winners["-1"]=0; # Collecting stats of the games
-    nGames = 5000 # how many games?
+    nGames = 1000000 # how many games?
     starttime = time.time()
     for g in range(nGames):
         if(g%(nGames/100) == 0):
@@ -308,7 +327,7 @@ def main():
     games = 0
     winners = {}; winners["1"]=0; winners["-1"]=0; # Collecting stats of the games
     for g in range(games):
-        winner = play_a_game("random", commentary=False)
+        winner = play_a_game("human", commentary=False)
         winners[str(winner)] += 1
     print("Out of", games, "games,"),0
     print("player", 1, "won", winners["1"],"times and")

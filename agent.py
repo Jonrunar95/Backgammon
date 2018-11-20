@@ -39,7 +39,7 @@ def learn(y_old, model, boards, winner):
         y_new = torch.tensor(reward, dtype = torch.float, device = device)
         real = y_new.data.cpu().numpy()[0]
         estimate = y_old.data.cpu().numpy()[0]
-        #print("gameover", y_new.data.cpu().numpy()[0], y_old.data.cpu().numpy()[0], abs(real-estimate))
+        print("gameover", y_new.data.cpu().numpy()[0], y_old.data.cpu().numpy()[0], abs(real-estimate))
     else:
         move, y_new = greedy(boards, model)
     # now do a forward pass to evaluate the board's after-state value
