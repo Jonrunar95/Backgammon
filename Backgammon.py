@@ -15,11 +15,10 @@ import time
 import pickle
 import twolayernetog
 import printing
-
 import flipped_agent 
-device = torch.device("cuda")
 
-dynamodel = []
+device = torch.device("cuda")
+dynaModel = []
 
 def init_board():
     # initializes the game board
@@ -234,16 +233,17 @@ def play_a_game(opponent, commentary = False):
 
             if(opponent == "dyna"):
                  if player == 1:
-                    move, y_old = agent.dyna_action(board_copy,dice,player,i, y_old, model, firstMove, dynamodel, True)
+                    move, y_old = agent.dyna_action(board_copy,dice,player,i, y_old, model, firstMove, dynaModel, True)
                     # update the board
                     if len(move) != 0:
                         for m in move:
                             board = update_board(board, m, player)
                     if(firstMove):
                         firstMove = False
-                elif player == -1:
+                 elif player == -1:
                     flipped_board = flipped_agent.flip_board(board_copy)
-                    move, y_old_p2 = agent.dyna_action(flipped_board,dice,1,i, y_old_p2, model, firstMove_p2, dynamodel, True)
+#                    move, y_old_p2 = agent.dyna_action(flipped_board,dice,1,i, y_old_p2, model, firstMove_p2, dynaModel, True)
+                    move, y_old_p2 = agent.action(flipped_board,dice,1,i, y_old_p2, model, firstMove_p2, True)
                     if len(move) != 0:
                         for m in move:
                             flipped_board = update_board(flipped_board, m, 1)
@@ -327,7 +327,7 @@ def play_a_game(opponent, commentary = False):
 
 def main():
     winners = {}; winners["1"]=0; winners["-1"]=0; # Collecting stats of the games
-    nGames = 50 # how many games?
+    nGames = 5 # how many games?
     starttime = time.time()
     for g in range(nGames):
         if(g%(nGames/100) == 0):
@@ -338,7 +338,8 @@ def main():
                 totaltime = int((timediff/(g/nGames))/60) 
                 print("Games played:", g, "--- Done", percent,"%",
                 "Time done:", int(timediff/60), "minutes --- Total time:", totaltime, "minutes")
-        winner = play_a_game("agent", commentary=False)
+#        winner = play_a_game("agent", commentary=False)
+        winner = play_a_game("dyna", commentary=False)
         winners[str(winner)] += 1
     print("Out of", nGames, "games,"),0
     print("player", 1, "won", winners["1"],"times and")

@@ -39,7 +39,7 @@ def learn(y_old, model, boards, winner):
         y_new = torch.tensor(reward, dtype = torch.float, device = device)
         real = y_new.data.cpu().numpy()[0]
         estimate = y_old.data.cpu().numpy()[0]
-        print("gameover", y_new.data.cpu().numpy()[0], y_old.data.cpu().numpy()[0], abs(real-estimate))
+#        print("gameover", y_new.data.cpu().numpy()[0], y_old.data.cpu().numpy()[0], abs(real-estimate))
     else:
         move, y_new = greedy(boards, model)
     # now do a forward pass to evaluate the board's after-state value
@@ -51,26 +51,15 @@ def learn(y_old, model, boards, winner):
     loss.backward()
     optimizer.step()
 
-def search(boards, n, dynaModel, model):
-    for i in range(n):
-
-        for i in range(len(dynaModel)):
-            if(state == dynaModel[i][0] and afterstate == dynaModel[i][1]):
-                dynaModel[i][0] = state
-                dynaModel[i][1] = afterstate
-            else:
-                dynaModel.append(???)
-        
-        
-        
-        
-        index = np.randint(len(dynaModel))
-
+#def search(boards, n, dynaModel, model):
+#    for i in range(n):
+#
+#        print("")
         # pick a random state s from the model
-        dynaModel[index][0]
+#        dynaModel[index][0]
         
         # pick a random action (dice?) a from s
-        dynaModel[index][1]
+#        dynaModel[index][1]
         
         # R,newBoard/(state) <--- model(s,a)
         
@@ -79,6 +68,7 @@ def search(boards, n, dynaModel, model):
         
 
 def dynaLearn(y_old, model, boards, dynaModel, winner):
+#def dynaLearn(y_old, model, boards, winner):
 
     criterion = torch.nn.MSELoss(reduction='sum')
     optimizer = torch.optim.SGD(model.parameters(), lr=1e-4)
@@ -90,7 +80,7 @@ def dynaLearn(y_old, model, boards, dynaModel, winner):
         y_new = torch.tensor(reward, dtype = torch.float, device = device)
         real = y_new.data.cpu().numpy()[0]
         estimate = y_old.data.cpu().numpy()[0]
-        print("gameover", y_new.data.cpu().numpy()[0], y_old.data.cpu().numpy()[0], abs(real-estimate))
+#        print("gameover", y_new.data.cpu().numpy()[0], y_old.data.cpu().numpy()[0], abs(real-estimate))
     else:
         move, y_new = greedy(boards, model)
     # now do a forward pass to evaluate the board's after-state value
@@ -102,7 +92,41 @@ def dynaLearn(y_old, model, boards, dynaModel, winner):
     loss.backward()
     optimizer.step()
 
-    search(boards, n, dynaModel, model)
+#    search(boards, n, dynaModel, model)
+#    search(boards, 1, dynaModel, model)   # 100?
+
+
+
+def action(board_copy,dice,player,i, y_old, model, firstMove, training):
+    # the champion to be
+    # inputs are the board, the dice and which player is to move
+    # outputs the chosen move accordingly to its policy
+    
+    # check out the legal moves available for the throw
+    possible_moves, possible_boards = Backgammon.legal_moves(board_copy, dice, player)
+
+
+   # if there are no moves available
+    if len(possible_moves) == 0: 
+        return [], y_old
+
+    boards = []
+    for board in possible_boards:
+        boards.append(getinputboard(board))
+    
+    if(not firstMove and training):
+        # learn
+        learn(y_old, model, boards, "")
+        
+
+
+    # take greedy Action
+    action, y_greedy = greedy(boards, model)
+    move = possible_moves[action]
+    
+    # make the best move according to the policy
+    return move, y_greedy
+
 
 
 
@@ -125,7 +149,8 @@ def dyna_action(board_copy,dice,player,i, y_old, model, firstMove, dynaModel, tr
     
     if(not firstMove and training):
         # learn
-        dynaLearn(y_old, model, boards, "no")
+        dynaLearn(y_old, model, boards, dynaModel, "no")
+#        dynaLearn(y_old, model, boards, "no")
         
 
 
@@ -133,13 +158,58 @@ def dyna_action(board_copy,dice,player,i, y_old, model, firstMove, dynaModel, tr
     action, y_greedy = greedy(boards, model)
     move = possible_moves[action]
 
-    dynaobject = (board_copy, ???)
-    dynaModel.append(dynaobject)
-    
+
+    # append or update the dynaModel
+    update_dynaModel(dynaModel, board_copy, dice, move)
+#    dynaobject = (board_copy, ???)
+#    dynaModel.append(dynaobject)
+
+
     # make the best move according to the policy
     return move, y_greedy
     
+
+
+# dynaModel:
+# [
+#    (S1, [ (d1, [m1, m2] ) ]),
+#    (S2, [ (d1, [m1]), (d2, [m1, m2, m3]) ]),
+#    (S3, [ etc. ]) ...
+# ]
+def update_dynaModel(dynaModel, board_copy, dice, move):
     
+    state_missing = True
+    dice_missing = True
+    move_missing = True
+
+    # dice are sorted to prevent duplicates
+    dice = np.sort(dice)
+    
+#    print(move) # laga
+
+    for s in range(len(dynaModel)):
+        if(np.array_equal(board_copy, dynaModel[s][0])):
+            state_missing = False
+
+            for d in range(len(dynaModel[s][1])):
+                if(np.array_equal(dice, dynaModel[s][1][d][0])):
+                    dice_missing = False
+                    
+                    for m in range(len(dynaModel[s][1][d][1])):
+                        if(np.array_equal(move, dynaModel[s][1][d][1][m])):
+                            move_missing = False
+
+                    if(move_missing):
+                        dynaModel[s][1][d][1].append(move)
+
+            if(dice_missing):
+                dice_object = (dice, [move])
+                dynaModel[s][1].append(dice_object)
+
+    if(state_missing):
+        state_object = (board_copy, [ (dice, [move]) ])
+        dynaModel.append(state_object)
+
 
 def getinputboard(board):
     boardencoding = np.zeros(15*28*2)
