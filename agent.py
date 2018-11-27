@@ -53,15 +53,32 @@ def learn(y_old, model, boards, winner):
 
 def search(boards, n, dynaModel, model):
     for i in range(n):
+
+        for i in range(len(dynaModel)):
+            if(state == dynaModel[i][0] and afterstate == dynaModel[i][1]):
+                dynaModel[i][0] = state
+                dynaModel[i][1] = afterstate
+            else:
+                dynaModel.append(???)
+        
+        
+        
+        
+        index = np.randint(len(dynaModel))
+
         # pick a random state s from the model
-        # pick a random action a from s
+        dynaModel[index][0]
+        
+        # pick a random action (dice?) a from s
+        dynaModel[index][1]
+        
         # R,newBoard/(state) <--- model(s,a)
+        
+        
         # update neural network with R and newBoard
+        
 
-def dynaLearn(y_old, model, boards, winner):
-    move, ygreedy = greedy(boards, model)
-
-
+def dynaLearn(y_old, model, boards, dynaModel, winner):
 
     criterion = torch.nn.MSELoss(reduction='sum')
     optimizer = torch.optim.SGD(model.parameters(), lr=1e-4)
@@ -87,7 +104,9 @@ def dynaLearn(y_old, model, boards, winner):
 
     search(boards, n, dynaModel, model)
 
-def action(board_copy,dice,player,i, y_old, model, firstMove, training):
+
+
+def dyna_action(board_copy,dice,player,i, y_old, model, firstMove, dynaModel, training):
     # the champion to be
     # inputs are the board, the dice and which player is to move
     # outputs the chosen move accordingly to its policy
@@ -106,16 +125,21 @@ def action(board_copy,dice,player,i, y_old, model, firstMove, training):
     
     if(not firstMove and training):
         # learn
-        learn(y_old, model, boards, "")
+        dynaLearn(y_old, model, boards, "no")
         
 
 
     # take greedy Action
     action, y_greedy = greedy(boards, model)
     move = possible_moves[action]
+
+    dynaobject = (board_copy, ???)
+    dynaModel.append(dynaobject)
     
     # make the best move according to the policy
     return move, y_greedy
+    
+    
 
 def getinputboard(board):
     boardencoding = np.zeros(15*28*2)

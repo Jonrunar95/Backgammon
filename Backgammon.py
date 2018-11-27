@@ -18,6 +18,9 @@ import printing
 
 import flipped_agent 
 device = torch.device("cuda")
+
+dynamodel = []
+
 def init_board():
     # initializes the game board
     board = np.zeros(29)
@@ -229,6 +232,22 @@ def play_a_game(opponent, commentary = False):
         for i in range(1+int(dice[0] == dice[1])):
             board_copy = np.copy(board) 
 
+            if(opponent == "dyna"):
+                 if player == 1:
+                    move, y_old = agent.dyna_action(board_copy,dice,player,i, y_old, model, firstMove, dynamodel, True)
+                    # update the board
+                    if len(move) != 0:
+                        for m in move:
+                            board = update_board(board, m, player)
+                    if(firstMove):
+                        firstMove = False
+                elif player == -1:
+                    flipped_board = flipped_agent.flip_board(board_copy)
+                    move, y_old_p2 = agent.dyna_action(flipped_board,dice,1,i, y_old_p2, model, firstMove_p2, dynamodel, True)
+                    if len(move) != 0:
+                        for m in move:
+                            flipped_board = update_board(flipped_board, m, 1)
+                    board = flipped_agent.flip_board(flipped_board)
             # make the move (agent vs agent):
             if(opponent == "agent"):
                 if player == 1:
@@ -308,7 +327,7 @@ def play_a_game(opponent, commentary = False):
 
 def main():
     winners = {}; winners["1"]=0; winners["-1"]=0; # Collecting stats of the games
-    nGames = 1000000 # how many games?
+    nGames = 50 # how many games?
     starttime = time.time()
     for g in range(nGames):
         if(g%(nGames/100) == 0):
