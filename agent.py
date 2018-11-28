@@ -51,20 +51,29 @@ def learn(y_old, model, boards, winner):
     loss.backward()
     optimizer.step()
 
-#def search(boards, n, dynaModel, model):
-#    for i in range(n):
-#
-#        print("")
+
+def search(boards, n, dynaModel, model):
+    for i in range(n):
+
         # pick a random state s from the model
-#        dynaModel[index][0]
+        state_object = dynaModel[np.random.randint(len(dynaModel))]
+        state = state_object[0]
         
         # pick a random action (dice?) a from s
-#        dynaModel[index][1]
+        dice_object = state_object[1][np.random.randint(len(state_object[1]))]
+        dice = dice_object[0]
+        
+        action = dice_object[1][np.random.randint(len(dice_object[1]))]
+        
+#        print("BEEP BOOP", state, dice, action)
+
         
         # R,newBoard/(state) <--- model(s,a)
         
         
         # update neural network with R and newBoard
+        
+        
         
 
 def dynaLearn(y_old, model, boards, dynaModel, winner):
@@ -93,7 +102,7 @@ def dynaLearn(y_old, model, boards, dynaModel, winner):
     optimizer.step()
 
 #    search(boards, n, dynaModel, model)
-#    search(boards, 1, dynaModel, model)   # 100?
+    search(boards, 1, dynaModel, model)   # 100?
 
 
 
@@ -184,8 +193,6 @@ def update_dynaModel(dynaModel, board_copy, dice, move):
 
     # dice are sorted to prevent duplicates
     dice = np.sort(dice)
-    
-#    print(move) # laga
 
     for s in range(len(dynaModel)):
         if(np.array_equal(board_copy, dynaModel[s][0])):
@@ -209,6 +216,7 @@ def update_dynaModel(dynaModel, board_copy, dice, move):
     if(state_missing):
         state_object = (board_copy, [ (dice, [move]) ])
         dynaModel.append(state_object)
+
 
 
 def getinputboard(board):
