@@ -18,8 +18,7 @@ import printing
 import flipped_agent 
 
 device = torch.device("cuda")
-#dynaModel = []
-dynaModel = set()
+dynaModel = []
 
 def init_board():
     # initializes the game board
@@ -328,7 +327,7 @@ def play_a_game(opponent, commentary = False):
 
 def main():
     winners = {}; winners["1"]=0; winners["-1"]=0; # Collecting stats of the games
-    nGames = 1000 # how many games?
+    nGames = 50 # how many games?
     starttime = time.time()
     for g in range(nGames):
         if(g%(nGames/100) == 0):

@@ -28,6 +28,7 @@ def greedy(boards, model):
 
     return move, y_greedy
 
+
 def learn(y_old, model, boards, winner):
     criterion = torch.nn.MSELoss(reduction='sum')
     optimizer = torch.optim.SGD(model.parameters(), lr=1e-4)
@@ -52,29 +53,6 @@ def learn(y_old, model, boards, winner):
     optimizer.step()
 
 
-def search(boards, n, dynaModel, model):
-    for i in range(n):
-
-        # pick a random state s from the model
-        state_object = dynaModel[np.random.randint(len(dynaModel))]
-        state = state_object[0]
-        
-        # pick a random action (dice?) a from s
-        dice_object = state_object[1][np.random.randint(len(state_object[1]))]
-        dice = dice_object[0]
-        
-        action = dice_object[1][np.random.randint(len(dice_object[1]))]
-        
-#        print("BEEP BOOP", state, dice, action)
-
-        
-        # R,newBoard/(state) <--- model(s,a)
-        
-        
-        # update neural network with R and newBoard
-        
-        
-        
 
 def dynaLearn(y_old, model, boards, dynaModel, winner):
 #def dynaLearn(y_old, model, boards, winner):
@@ -104,6 +82,29 @@ def dynaLearn(y_old, model, boards, dynaModel, winner):
 #    search(boards, n, dynaModel, model)
     search(boards, 1, dynaModel, model)   # 100?
 
+
+
+def search(boards, n, dynaModel, model):
+    for i in range(n):
+
+        # pick a random state s from the model
+        state_object = dynaModel[np.random.randint(len(dynaModel))]
+        state = state_object[0]
+        
+        # pick a random action (dice?) a from s
+        dice_object = state_object[1][np.random.randint(len(state_object[1]))]
+        dice = dice_object[0]
+        
+        action = dice_object[1][np.random.randint(len(dice_object[1]))]
+        
+#        print("BEEP BOOP", state, dice, action)
+
+        
+        # R,newBoard/(state) <--- model(s,a)
+        
+        
+        # update neural network with R and newBoard
+        
 
 
 def action(board_copy,dice,player,i, y_old, model, firstMove, training):
@@ -170,8 +171,6 @@ def dyna_action(board_copy,dice,player,i, y_old, model, firstMove, dynaModel, tr
 
     # append or update the dynaModel
     update_dynaModel(dynaModel, board_copy, dice, move)
-#    dynaobject = (board_copy, ???)
-#    dynaModel.append(dynaobject)
 
 
     # make the best move according to the policy
