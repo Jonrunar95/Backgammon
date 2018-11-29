@@ -17,8 +17,10 @@ import twolayernetog
 import printing
 import flipped_agent 
 
-device = torch.device("cuda")
-dynaModel = []
+#device = torch.device("cuda")
+device = torch.device("cpu")
+dynaModel = set([])
+#dynaModel = []
 
 def init_board():
     # initializes the game board
@@ -218,7 +220,8 @@ def play_a_game(opponent, commentary = False):
     firstMove_p2 = True
     pickle_in = open("randommodel.pickle","rb")
     model = pickle.load(pickle_in)
-    model = model.cuda()
+#    model = model.cuda()
+    model = model.cpu()
     # play on
     while not game_over(board) and not check_for_error(board):
         if commentary: print("lets go player ",player)
@@ -327,7 +330,7 @@ def play_a_game(opponent, commentary = False):
 
 def main():
     winners = {}; winners["1"]=0; winners["-1"]=0; # Collecting stats of the games
-    nGames = 50 # how many games?
+    nGames = 5 # how many games?
     starttime = time.time()
     for g in range(nGames):
         if(g%(nGames/100) == 0):

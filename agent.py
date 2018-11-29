@@ -10,12 +10,13 @@ import Backgammon
 import torch
 import pickle
 import twolayernetog
+import random
 from IPython.core.debugger import set_trace
 
 
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-#device = torch.device('cpu')
+#device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cpu')
 
 def greedy(boards, model):
 
@@ -80,11 +81,22 @@ def dynaLearn(y_old, model, boards, dynaModel, winner):
     optimizer.step()
 
 #    search(boards, n, dynaModel, model)
-    search(boards, 1, dynaModel, model)   # 100?
+    search(1, dynaModel, model)   # 100?
 
 
 
-def search(boards, n, dynaModel, model):
+def search(n, dynaModel, model):
+    for i in range(n):
+        state_object = random.sample(dynaModel)
+        
+        state = state_object[0]
+        adterstate = state_object[1]
+        
+        print(state, afterstate)
+        
+        
+
+def search_backup(n, dynaModel, model):
     for i in range(n):
 
         # pick a random state s from the model
@@ -161,21 +173,26 @@ def dyna_action(board_copy,dice,player,i, y_old, model, firstMove, dynaModel, tr
         # learn
         dynaLearn(y_old, model, boards, dynaModel, "no")
 #        dynaLearn(y_old, model, boards, "no")
-        
-
 
     # take greedy Action
     action, y_greedy = greedy(boards, model)
     move = possible_moves[action]
 
-
     # append or update the dynaModel
-    update_dynaModel(dynaModel, board_copy, dice, move)
-
+    update_dynaModel(board_copy, move)
 
     # make the best move according to the policy
     return move, y_greedy
     
+
+
+def update_dynaModel(dynaModel, state, afterstate):
+    
+    state_object = (state, afterstate)
+
+    if(state_object not in dynaModel):
+        dynaModel.add(state_object)
+
 
 
 # dynaModel:
@@ -184,7 +201,7 @@ def dyna_action(board_copy,dice,player,i, y_old, model, firstMove, dynaModel, tr
 #    (S2, [ (d1, [m1]), (d2, [m1, m2, m3]) ]),
 #    (S3, [ etc. ]) ...
 # ]
-def update_dynaModel(dynaModel, board_copy, dice, move):
+def update_dynaModel_backup(dynaModel, board_copy, dice, move):
     
     state_missing = True
     dice_missing = True
