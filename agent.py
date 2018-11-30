@@ -77,43 +77,61 @@ def dynaLearn(y_old, model, boards, dynaModel, winner):
     # Zero gradients, perform a backward pass, and update the weights.
 
     optimizer.zero_grad()
-    loss.backward()
+#    loss.backward()
+    loss.backward(retain_graph=True)
     optimizer.step()
 
 #    search(boards, n, dynaModel, model)
-    search(1, dynaModel, model)   # 100?
+    search(5, dynaModel, model, y_old)   # 100?
 
 
 
-def search(n, dynaModel, model):
+#def search(n, dynaModel, model):
+#    for i in range(n):
+#        state_object = random.sample(dynaModel)
+#        
+#        state = state_object[0]
+#        adterstate = state_object[1]
+#        
+#        print(state, afterstate)
+#        
+        
+
+def search(n, dynaModel, model, y_old):
+
     for i in range(n):
-        state_object = random.sample(dynaModel)
-        
-        state = state_object[0]
-        adterstate = state_object[1]
-        
-        print(state, afterstate)
-        
-        
 
-def search_backup(n, dynaModel, model):
-    for i in range(n):
-
-        # pick a random state s from the model
-        state_object = dynaModel[np.random.randint(len(dynaModel))]
-        state = state_object[0]
+        rnd = np.random.randint(len(dynaModel))
+        state = dynaModel[rnd][0]
+        afterstatestate = dynaModel[rnd][1]
+        encoded_state = getinputboard(state)
+        encoded_afterstate = getinputboard(afterstatestate)
         
-        # pick a random action (dice?) a from s
-        dice_object = state_object[1][np.random.randint(len(state_object[1]))]
-        dice = dice_object[0]
-        
-        action = dice_object[1][np.random.randint(len(dice_object[1]))]
-        
-#        print("BEEP BOOP", state, dice, action)
-
+#        # pick a random state s from the model
+#        state_object = dynaModel[np.random.randint(len(dynaModel))]
+#        state = state_object[0]
+#        
+#        # pick a random action (dice?) a from s
+#        dice_object = state_object[1][np.random.randint(len(state_object[1]))]
+#        dice = dice_object[0]
+#        
+#        action = dice_object[1][np.random.randint(len(dice_object[1]))]
         
         # R,newBoard/(state) <--- model(s,a)
         
+        x_1 = torch.tensor(encoded_state, dtype = torch.float, device = device)
+        y_1 = model(x_1)
+        
+        x_2 = torch.tensor(encoded_afterstate, dtype = torch.float, device = device)
+        y_2 = model(x_2)
+
+        criterion = torch.nn.MSELoss(reduction='sum')
+        optimizer = torch.optim.SGD(model.parameters(), lr=1e-4)
+        loss = criterion(y_1, y_2)
+        
+        optimizer.zero_grad()
+        loss.backward(retain_graph=True)
+        optimizer.step()
         
         # update neural network with R and newBoard
         
@@ -178,8 +196,15 @@ def dyna_action(board_copy,dice,player,i, y_old, model, firstMove, dynaModel, tr
     action, y_greedy = greedy(boards, model)
     move = possible_moves[action]
 
+
+
+    for m in move:
+        afterstate = update_board(board_copy, m, player)
+
+
     # append or update the dynaModel
-    update_dynaModel(board_copy, move)
+    update_dynaModel(dynaModel, board_copy, afterstate)
+#    update_dynaModel(dynaModel, board_copy, dice, move)
 
     # make the best move according to the policy
     return move, y_greedy
@@ -188,50 +213,60 @@ def dyna_action(board_copy,dice,player,i, y_old, model, firstMove, dynaModel, tr
 
 def update_dynaModel(dynaModel, state, afterstate):
     
+    state_missing = True
+
     state_object = (state, afterstate)
 
-    if(state_object not in dynaModel):
-        dynaModel.add(state_object)
-
-
-
-# dynaModel:
-# [
-#    (S1, [ (d1, [m1, m2] ) ]),
-#    (S2, [ (d1, [m1]), (d2, [m1, m2, m3]) ]),
-#    (S3, [ etc. ]) ...
-# ]
-def update_dynaModel_backup(dynaModel, board_copy, dice, move):
-    
-    state_missing = True
-    dice_missing = True
-    move_missing = True
-
-    # dice are sorted to prevent duplicates
-    dice = np.sort(dice)
-
     for s in range(len(dynaModel)):
-        if(np.array_equal(board_copy, dynaModel[s][0])):
+        if(state_object is dynaModel[s]):
             state_missing = False
 
-            for d in range(len(dynaModel[s][1])):
-                if(np.array_equal(dice, dynaModel[s][1][d][0])):
-                    dice_missing = False
-                    
-                    for m in range(len(dynaModel[s][1][d][1])):
-                        if(np.array_equal(move, dynaModel[s][1][d][1][m])):
-                            move_missing = False
-
-                    if(move_missing):
-                        dynaModel[s][1][d][1].append(move)
-
-            if(dice_missing):
-                dice_object = (dice, [move])
-                dynaModel[s][1].append(dice_object)
-
+#    for s in range(len(dynaModel)):
+#        if(np.array_equal(state, dynaModel[s])):
+#            state_missing = False
+    
     if(state_missing):
-        state_object = (board_copy, [ (dice, [move]) ])
         dynaModel.append(state_object)
+
+
+#
+## dynaModel:
+## [
+##    (S1, [ (d1, [m1, m2] ) ]),
+##    (S2, [ (d1, [m1]), (d2, [m1, m2, m3]) ]),
+##    (S3, [ etc. ]) ...
+## ]
+#def update_dynaModel(dynaModel, board_copy, dice, move):
+#    
+#    state_missing = True
+#    dice_missing = True
+#    move_missing = True
+#
+#    # dice are sorted to prevent duplicates
+#    dice = np.sort(dice)
+#
+#    for s in range(len(dynaModel)):
+#        if(np.array_equal(board_copy, dynaModel[s][0])):
+#            state_missing = False
+#
+#            for d in range(len(dynaModel[s][1])):
+#                if(np.array_equal(dice, dynaModel[s][1][d][0])):
+#                    dice_missing = False
+#                    
+#                    for m in range(len(dynaModel[s][1][d][1])):
+#                        if(np.array_equal(move, dynaModel[s][1][d][1][m])):
+#                            move_missing = False
+#
+#                    if(move_missing):
+#                        dynaModel[s][1][d][1].append(move)
+#
+#            if(dice_missing):
+#                dice_object = (dice, [move])
+#                dynaModel[s][1].append(dice_object)
+#
+#    if(state_missing):
+#        state_object = (board_copy, [ (dice, [move]) ])
+#        dynaModel.append(state_object)
 
 
 
@@ -244,3 +279,27 @@ def getinputboard(board):
         elif(val < 0):
             boardencoding[(i-1)*15 + int(abs(board[i])) + 360] = 1         
     return boardencoding
+
+
+def update_board(board, move, player):
+    # updates the board
+    # inputs are some board, one move and the player
+    # outputs the updated board
+    board_to_update = np.copy(board) 
+
+    # if the move is there
+    if len(move) > 0:
+        startPip = move[0]
+        endPip = move[1]
+        
+        # moving the dead piece if the move kills a piece
+        kill = board_to_update[endPip]==(-1*player)
+        if kill:
+            board_to_update[endPip] = 0
+            jail = 25+(player==1)
+            board_to_update[jail] = board_to_update[jail] - player
+        
+        board_to_update[startPip] = board_to_update[startPip]-1*player
+        board_to_update[endPip] = board_to_update[endPip]+player
+
+    return board_to_update
