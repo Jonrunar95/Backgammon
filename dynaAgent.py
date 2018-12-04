@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+    #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 The intelligent agent
@@ -22,24 +22,39 @@ def greedy(boards, model):
 
     return action, y_greedy
 
-def learn(y_old, model, boards, winner):
+def search(boards, n, dynaModel, model):
+    #for i in range(n):
+        # pick a random state s from the model
+        # pick a random action a from s
+        # R,newBoard/(state) <--- model(s,a)
+        # update neural network with R and newBoard
+
+def dynaLearn(y_old, model, boards, winner):
+    move, ygreedy = greedy(boards, model)
     criterion = torch.nn.MSELoss(reduction='sum')
     optimizer = torch.optim.SGD(model.parameters(), lr=1e-4)
-    action = 0
     if(winner == "yes" or winner == "no"):
         if(winner == "yes"):
             reward =  [1.0]
         elif (winner == "no"):
             reward =  [0.0]
         y_new = torch.tensor(reward, dtype = torch.float, device = device)
+        real = y_new.data.cpu().numpy()[0]
+        estimate = y_old.data.cpu().numpy()[0]
+        print("gameover", y_new.data.cpu().numpy()[0], y_old.data.cpu().numpy()[0], abs(real-estimate))
     else:
-        action, y_new = greedy(boards, model)
+        move, y_new = greedy(boards, model)
     # now do a forward pass to evaluate the board's after-state value
+
     loss = criterion(y_old, y_new)
     # Zero gradients, perform a backward pass, and update the weights.
+
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
+
+    search(boards, n, dynaModel, model)
+
 
     
 
@@ -72,3 +87,4 @@ def getinputboard(board):
         elif(val < 0):
             boardencoding[(i-1)*15 + int(abs(board[i])) + 360] = 1         
     return boardencoding
+

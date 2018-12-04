@@ -289,7 +289,6 @@ def play_a_game(opponent, commentary = False):
 
 
     # return the winner
-    print("Final board", board_copy)
     winner = -1*player
     if(opponent == "agent"):
         if(winner == 1):
@@ -308,7 +307,7 @@ def play_a_game(opponent, commentary = False):
 
 def main():
     winners = {}; winners["1"]=0; winners["-1"]=0; # Collecting stats of the games
-    nGames = 1000000 # how many games?
+    nGames = 0 # how many games?
     starttime = time.time()
     for g in range(nGames):
         if(g%(nGames/100) == 0):
@@ -324,10 +323,10 @@ def main():
     print("Out of", nGames, "games,"),0
     print("player", 1, "won", winners["1"],"times and")
     print("player", -1, "won", winners["-1"],"times")
-    games = 0
+    games = 100
     winners = {}; winners["1"]=0; winners["-1"]=0; # Collecting stats of the games
     for g in range(games):
-        winner = play_a_game("human", commentary=False)
+        winner = play_a_game("random", commentary=False)
         winners[str(winner)] += 1
     print("Out of", games, "games,"),0
     print("player", 1, "won", winners["1"],"times and")
